@@ -133,3 +133,18 @@ function mailinglabelscsv_civicrm_alterSettingsFolders(&$metaDataFolders = NULL)
 function mailinglabelscsv_civicrm_entityTypes(&$entityTypes) {
   _mailinglabelscsv_civix_civicrm_entityTypes($entityTypes);
 }
+
+/**
+ * Implements hook_civicrm_searchTasks().
+ *
+ * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_searchTasks
+ */
+function mailinglabelscsv_civicrm_searchTasks($objectType, &$tasks) {
+  if ($objectType == 'contact') {
+    $tasks[] = [
+      'title' => ts('Mailing labels - Export CSV'),
+      'class' => 'CRM_MailingLabelsCSV_Form_Task_LabelCSV',
+      'result' => TRUE,
+    ];
+  }
+}
