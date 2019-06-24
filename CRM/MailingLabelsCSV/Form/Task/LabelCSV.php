@@ -348,9 +348,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
       // load complete address as array key
       $address = trim($rows[$rowID]['street_address'])
         . trim($rows[$rowID]['city'])
-        . trim($rows[$rowID]['state_province'])
-        . trim($rows[$rowID]['postal_code'])
-        . trim($rows[$rowID]['country']);
+        . trim($rows[$rowID]['postal_code']);
       $address = strtolower($address);
       if (isset($rows[$rowID]['last_name'])) {
         $name = $rows[$rowID]['last_name'];
