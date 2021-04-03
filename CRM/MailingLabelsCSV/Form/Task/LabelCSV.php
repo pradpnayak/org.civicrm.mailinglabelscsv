@@ -18,6 +18,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
   public function buildQuickForm() {
     parent::buildLabelForm($this);
     CRM_Utils_System::setTitle(ts('Mailing labels - Export CSV'));
+    $this->addElement('checkbox', 'do_not_trade', ts('Do not print labels for contacts with "Do Not Trade" privacy option checked'));
     $this->removeElement('label_name');
     $element = &$this->getElement('location_type_id');
     $element->_attributes['class'] = 'crm-select2';
@@ -43,6 +44,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
   public function setDefaultValues() {
     $defaults = [];
     $defaults['do_not_mail'] = 1;
+    $defaults['do_not_trade'] = 1;
 
     return $defaults;
   }
@@ -50,7 +52,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
   /**
    * Process the form after the input has been submitted and validated.
    */
-  public function postProcess() {
+  public function postProcess($params = NULL) {
     $fv = $this->controller->exportValues($this->_name);
     $config = CRM_Core_Config::singleton();
     $locName = NULL;
@@ -142,6 +144,11 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
     if (!empty($fv['do_not_mail'])) {
       $params[] = ['do_not_mail', '=', 0, 0, 0];
     }
+
+    if (!empty($fv['do_not_trade'])) {
+      $params[] = ['do_not_trade', '=', 0, 0, 0];
+    }
+
     // fix for CRM-2613
     $params[] = ['is_deceased', '=', 0, 0, 0];
 
@@ -346,21 +353,23 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
     $uniqueAddress = [];
     foreach (array_keys($rows) as $rowID) {
       // load complete address as array key
-      $address = trim($rows[$rowID]['street_address'])
-        . trim($rows[$rowID]['city'])
-        . trim($rows[$rowID]['postal_code']);
-      $address = strtolower($address);
+      $address = trim($rows[$rowID]['street_address'] ?? '')
+        . trim($rows[$rowID]['city'] ?? '')
+//        . trim($rows[$rowID]['state_province'])
+        . trim($rows[$rowID]['postal_code'] ?? '');
+//        . trim($rows[$rowID]['country']);
+      $address = str_replace(' ', '', strtolower($address));
       if (isset($rows[$rowID]['last_name'])) {
         $name = $rows[$rowID]['last_name'];
       }
       else {
-        $name = $rows[$rowID]['display_name'];
+        $name = $rows[$rowID]['display_name'] ?? '';
       }
 
       // CRM-15120
       $formatted = [
-        'first_name' => $rows[$rowID]['first_name'],
-        'individual_prefix' => $rows[$rowID]['individual_prefix'],
+        'first_name' => $rows[$rowID]['first_name'] ?? '',
+        'individual_prefix' => $rows[$rowID]['individual_prefix'] ?? '',
       ];
       $format = Civi::settings()->get('display_name_format');
       $firstNameWithPrefix = CRM_Utils_Address::format($formatted, $format, FALSE, FALSE);
@@ -368,16 +377,16 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
 
       // fill uniqueAddress array with last/first name tree
       if (isset($uniqueAddress[$address])) {
-        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['first_name'] = $rows[$rowID]['first_name'];
-        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['addressee_display'] = $rows[$rowID]['addressee_display'];
+        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['first_name'] = $rows[$rowID]['first_name'] ?? '';
+        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['addressee_display'] = $rows[$rowID]['addressee_display'] ?? '';
         // drop unnecessary rows
         unset($rows[$rowID]);
         // this is the first listing at this address
       }
       else {
         $uniqueAddress[$address]['ID'] = $rowID;
-        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['first_name'] = $rows[$rowID]['first_name'];
-        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['addressee_display'] = $rows[$rowID]['addressee_display'];
+        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['first_name'] = $rows[$rowID]['first_name'] ?? '';
+        $uniqueAddress[$address]['names'][$name][$firstNameWithPrefix]['addressee_display'] = $rows[$rowID]['addressee_display'] ?? '';
       }
     }
     foreach ($uniqueAddress as $address => $data) {
@@ -390,7 +399,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
           break;
         }
         if (count($first_names) == 1) {
-          $family = $first_names[current(array_keys($first_names))]['addressee_display'];
+          $family = $first_names[current(array_keys($first_names))]['addressee_display'] ?? '';
         }
         else {
           // collapse the tree to summarize
