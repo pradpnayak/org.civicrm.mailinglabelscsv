@@ -152,6 +152,9 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
     // fix for CRM-2613
     $params[] = ['is_deceased', '=', 0, 0, 0];
 
+    $params[] = ['postal_code', 'IS NOT EMPTY', 0, 0, 0];
+    $params[] = ['street_address', 'IS NOT EMPTY', 0, 0, 0];
+
     $custom = [];
     foreach ($returnProperties as $name => $dontCare) {
       $cfID = CRM_Core_BAO_CustomField::getKeyID($name);
