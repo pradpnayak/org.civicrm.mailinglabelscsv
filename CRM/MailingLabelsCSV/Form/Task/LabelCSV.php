@@ -152,7 +152,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
     // fix for CRM-2613
     $params[] = ['is_deceased', '=', 0, 0, 0];
 
-    $params[] = ['postal_code', 'IS NOT EMPTY', 0, 0, 0];
+    $params[] = ['postal_code', 'IS NOT EMPTY', '', 0, 0];
     $params[] = ['street_address', 'IS NOT EMPTY', 0, 0, 0];
 
     $custom = [];
@@ -168,11 +168,13 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
     $query = new CRM_Contact_BAO_Query($params, $returnProperties);
     $details = $query->apiQuery($params, $returnProperties, NULL, NULL, 0, $numberofContacts);
 
+    $contactIds = array_keys($details[0]);
+
     $messageToken = CRM_Utils_Token::getTokens($mailingFormat);
 
     // also get all token values
     CRM_Utils_Hook::tokenValues($details[0],
-      $this->_contactIds,
+      $contactIds,
       NULL,
       $messageToken,
       'CRM_Contact_Form_Task_Label'
@@ -187,7 +189,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
       }
     }
 
-    foreach ($this->_contactIds as $value) {
+    foreach ($contactIds as $value) {
       foreach ($custom as $cfID) {
         if (isset($details[0][$value]["custom_{$cfID}"])) {
           $details[0][$value]["custom_{$cfID}"] = CRM_Core_BAO_CustomField::displayValue($details[0][$value]["custom_{$cfID}"], $cfID);
@@ -196,7 +198,7 @@ class CRM_MailingLabelsCSV_Form_Task_LabelCSV extends CRM_Contact_Form_Task_Labe
       $contact = CRM_Utils_Array::value($value, $details['0']);
 
       if (is_a($contact, 'CRM_Core_Error')) {
-        return NULL;
+        continue;
       }
 
       // we need to remove all the "_id"
